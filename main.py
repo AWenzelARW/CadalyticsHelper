@@ -8,7 +8,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Lock this to the Squarespace domain in prod
+    allow_origins=["*"],  # Lock this to your Squarespace domain in prod
     allow_methods=["POST"],
     allow_headers=["*"],
 )
@@ -52,6 +52,10 @@ Rules:
 class QueryRequest(BaseModel):
     query: str
 
+
+@app.get("/")
+def root():
+    return {"status": "ok"}
 
 @app.get("/health")
 def health():
