@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CADalytics — Workflow Intelligence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg:        #0a0c0f;
+    --surface:   #111418;
+    --surface2:  #181c22;
+    --border:    #1e2530;
+    --border2:   #2a3340;
+    --accent:    #00c8ff;
+    --accent2:   #0070a0;
+    --accent-dim:#003a54;
+    --green:     #00e5a0;
+    --amber:     #ffb830;
+    --red:       #ff4d6a;
+    --text:      #c8d4e0;
+    --text-dim:  #5a6a7a;
+    --text-muted:#3a4a58;
+    --mono:      'Space Mono', monospace;
+    --display:   'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,200,255,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── LAYOUT ── */
+  #app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: 52px 1fr;
+    height: 100vh;
+    gap: 0;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,12,15,0.9);
+    backdrop-filter: blur(8px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    position: relative;
+  }
+  .logo-mark svg {
+    width: 100%;
+    height: 100%;
+  }
+  .logo-text {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+  .logo-text span {
+    color: var(--accent);
+  }
+  .logo-tag {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-left: 1px solid var(--border2);
+    padding-left: 10px;
+    margin-left: 2px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .platform-pills {
+    display: flex;
+    gap: 6px;
+  }
+  .pill {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+  }
+  .pill.active {
+    border-color: var(--accent2);
+    color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  #api-key-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 5px 12px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+  #api-key-btn:hover { border-color: var(--accent2); color: var(--accent); }
+  #api-key-btn.set { border-color: #1a4a2a; color: var(--green); background: #0a1f14; }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: rgba(10,12,15,0.6);
+  }
+
+  .sidebar-header {
+    padding: 14px 16px 10px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-header button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color 0.15s;
+  }
+  .sidebar-header button:hover { color: var(--red); }
+
+  #history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  #history-list::-webkit-scrollbar { width: 4px; }
+  #history-list::-webkit-scrollbar-track { background: transparent; }
+  #history-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .history-item {
+    padding: 9px 16px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.12s;
+    position: relative;
+  }
+  .history-item:hover { background: var(--surface2); border-left-color: var(--border2); }
+  .history-item.active { background: var(--surface2); border-left-color: var(--accent); }
+  .history-item .h-query {
+    font-size: 11px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+  .history-item .h-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+  .history-empty {
+    padding: 30px 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 2;
+  }
+
+  /* ── MAIN AREA ── */
+  #main {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── RESPONSE AREA ── */
+  #response-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 32px;
+  }
+  #response-area::-webkit-scrollbar { width: 6px; }
+  #response-area::-webkit-scrollbar-track { background: transparent; }
+  #response-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── WELCOME STATE ── */
+  #welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 20px;
+    text-align: center;
+    padding: 40px;
+  }
+  .welcome-icon {
+    width: 64px;
+    height: 64px;
+    opacity: 0.2;
+  }
+  .welcome-title {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    opacity: 0.5;
+  }
+  .welcome-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    max-width: 380px;
+    line-height: 2;
+  }
+  .example-queries {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 8px;
+    max-width: 500px;
+  }
+  .example-chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 12px;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    background: var(--surface);
+  }
+  .example-chip:hover {
+    border-color: var(--accent2);
+    color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  /* ── RESPONSE CARDS ── */
+  .response-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeUp 0.3s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .query-echo {
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 10px 14px;
+    border-left: 2px solid var(--accent2);
+    background: var(--surface);
+    border-radius: 0 2px 2px 0;
+  }
+  .query-echo::before {
+    content: '> ';
+    color: var(--accent);
+  }
+
+  .response-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .card-label {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .card-label.accent { color: var(--accent); }
+  .card-label.green  { color: var(--green); }
+  .card-label.amber  { color: var(--amber); }
+  .card-body {
+    padding: 16px;
+  }
+
+  /* Primary command display */
+  .cmd-primary {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 10px;
+  }
+  .cmd-name {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+  .cmd-aliases {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .cmd-alias-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent2);
+    color: var(--accent);
+    border-radius: 2px;
+    font-family: var(--mono);
+  }
+  .cmd-description {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .cmd-platform {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .cmd-platform span {
+    color: var(--text-dim);
+  }
+
+  /* Steps list */
+  .steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .step-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .step-num {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid var(--accent2);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: 2px;
+    margin-top: 1px;
+  }
+  .step-text {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.65;
+  }
+  .step-text code {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    background: rgba(255,184,48,0.08);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  /* Related commands */
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+  }
+  .related-cmd {
+    padding: 9px 12px;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .related-cmd:hover {
+    border-color: var(--accent2);
+    background: var(--accent-dim);
+  }
+  .related-cmd-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .related-cmd-desc {
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  /* Civil 3D / MicroStation notes */
+  .platform-note {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    margin-bottom: 8px;
+  }
+  .platform-note:last-child { margin-bottom: 0; }
+  .note-platform {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    white-space: nowrap;
+    padding-top: 1px;
+    min-width: 70px;
+  }
+  .note-platform.micro { color: var(--green); }
+  .note-text {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  /* Warning/tip cards */
+  .inline-tip {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 14px;
+    border-radius: 2px;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-top: 10px;
+  }
+  .inline-tip.tip  { background: rgba(0,229,160,0.06); border: 1px solid rgba(0,229,160,0.15); color: var(--green); }
+  .inline-tip.warn { background: rgba(255,184,48,0.06); border: 1px solid rgba(255,184,48,0.15); color: var(--amber); }
+  .tip-icon { font-size: 14px; flex-shrink: 0; }
+
+  /* ── LOADING ── */
+  #loading {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 20px;
+  }
+  .loader-line {
+    width: 200px;
+    height: 1px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .loader-line::after {
+    content: '';
+    position: absolute;
+    height: 100%;
+    width: 60px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scan 1.2s ease-in-out infinite;
+  }
+  @keyframes scan {
+    from { left: -60px; }
+    to   { left: 200px; }
+  }
+  .loader-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    animation: blink 1.4s ease infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 0.4; }
+    50%       { opacity: 1; }
+  }
+
+  /* ── INPUT ZONE ── */
+  #input-zone {
+    border-top: 1px solid var(--border);
+    padding: 16px 24px 20px;
+    background: rgba(10,12,15,0.95);
+    backdrop-filter: blur(8px);
+  }
+
+  .input-wrapper {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+
+  #query-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 11px 14px;
+    resize: none;
+    outline: none;
+    border-radius: 3px;
+    line-height: 1.6;
+    min-height: 44px;
+    max-height: 120px;
+    transition: border-color 0.15s;
+    overflow-y: auto;
+  }
+  #query-input::placeholder { color: var(--text-muted); }
+  #query-input:focus { border-color: var(--accent2); }
+  #query-input::-webkit-scrollbar { width: 4px; }
+  #query-input::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  #submit-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 11px 20px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+    white-space: nowrap;
+    height: 44px;
+    flex-shrink: 0;
+  }
+  #submit-btn:hover { background: #33d4ff; transform: translateY(-1px); }
+  #submit-btn:active { transform: translateY(0); }
+  #submit-btn:disabled { background: var(--border2); color: var(--text-muted); cursor: not-allowed; transform: none; }
+
+  .input-hint {
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 16px;
+  }
+  .hint-key {
+    color: var(--text-dim);
+  }
+
+  /* ── MODAL ── */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  #modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 28px;
+    width: 440px;
+    max-width: 90vw;
+    animation: fadeUp 0.2s ease both;
+  }
+  .modal-title {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+  .modal-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    line-height: 1.7;
+  }
+  .modal-sub a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .modal-sub a:hover { text-decoration: underline; }
+  .modal input[type="password"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    border-radius: 3px;
+    margin-bottom: 16px;
+    transition: border-color 0.15s;
+  }
+  .modal input[type="password"]:focus { border-color: var(--accent2); }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .btn-secondary {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--border2); color: var(--text); }
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 8px 16px;
+    background: var(--accent);
+    border: none;
+    color: #000;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s;
+  }
+  .btn-primary:hover { background: #33d4ff; }
+
+  /* ── ERROR ── */
+  .error-card {
+    padding: 16px;
+    border: 1px solid rgba(255,77,106,0.3);
+    background: rgba(255,77,106,0.06);
+    border-radius: 3px;
+    color: var(--red);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  /* ── SCROLLBAR global ── */
+  * { scrollbar-width: thin; scrollbar-color: var(--border2) transparent; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <header id="header">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="1" y="1" width="26" height="26" stroke="#1e2530" stroke-width="1"/>
+          <line x1="1" y1="14" x2="27" y2="14" stroke="#1e2530" stroke-width="0.5"/>
+          <line x1="14" y1="1" x2="14" y2="27" stroke="#1e2530" stroke-width="0.5"/>
+          <circle cx="14" cy="14" r="5" stroke="#00c8ff" stroke-width="1.5"/>
+          <circle cx="14" cy="14" r="1.5" fill="#00c8ff"/>
+          <line x1="14" y1="1" x2="14" y2="9" stroke="#00c8ff" stroke-width="1"/>
+          <line x1="14" y1="19" x2="14" y2="27" stroke="#00c8ff" stroke-width="1"/>
+          <line x1="1" y1="14" x2="9" y2="14" stroke="#00c8ff" stroke-width="1"/>
+          <line x1="19" y1="14" x2="27" y2="14" stroke="#00c8ff" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="logo-text">CAD<span>alytics</span></div>
+      <div class="logo-tag">Workflow Intelligence</div>
+    </div>
+    <div class="header-right">
+      <div class="platform-pills">
+        <div class="pill active">AutoCAD / C3D</div>
+        <div class="pill active">MicroStation</div>
+      </div>
+      <button id="api-key-btn" onclick="openModal()" style="display:none">⚙ API Key</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <span>Query History</span>
+      <button onclick="clearHistory()" title="Clear history">×</button>
+    </div>
+    <div id="history-list">
+      <div class="history-empty">No queries yet.<br>Describe a task below<br>to get started.</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main id="main">
+    <div id="response-area">
+
+      <!-- Welcome state -->
+      <div id="welcome">
+        <svg class="welcome-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="2" width="60" height="60" stroke="#00c8ff" stroke-width="1.5"/>
+          <line x1="2" y1="32" x2="62" y2="32" stroke="#00c8ff" stroke-width="0.75"/>
+          <line x1="32" y1="2" x2="32" y2="62" stroke="#00c8ff" stroke-width="0.75"/>
+          <circle cx="32" cy="32" r="12" stroke="#00c8ff" stroke-width="1.5"/>
+          <circle cx="32" cy="32" r="3" fill="#00c8ff"/>
+        </svg>
+        <div class="welcome-title">What are you trying to do?</div>
+        <div class="welcome-sub">Describe any CAD task in plain English. CADalytics will identify the right commands, aliases, and step-by-step workflow for AutoCAD, Civil 3D, or MicroStation.</div>
+        <div class="example-queries">
+          <div class="example-chip" onclick="tryExample(this)">offset a polyline 25 feet</div>
+          <div class="example-chip" onclick="tryExample(this)">round the corner between two lines</div>
+          <div class="example-chip" onclick="tryExample(this)">create a grading surface from contours</div>
+          <div class="example-chip" onclick="tryExample(this)">align viewport to a specific bearing</div>
+          <div class="example-chip" onclick="tryExample(this)">fix a polyline that won't hatch</div>
+          <div class="example-chip" onclick="tryExample(this)">set up a layer standard for land dev</div>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="loading">
+        <div class="loader-line"></div>
+        <div class="loader-text">Analyzing workflow...</div>
+      </div>
+
+    </div><!-- /response-area -->
+
+    <!-- INPUT ZONE -->
+    <div id="input-zone">
+      <div class="input-wrapper">
+        <textarea
+          id="query-input"
+          placeholder="Describe what you're trying to do in CAD…"
+          rows="1"
+          spellcheck="false"
+        ></textarea>
+        <button id="submit-btn" onclick="submitQuery()">Run Query</button>
+      </div>
+      <div class="input-hint">
+        <span><span class="hint-key">Enter</span> to submit</span>
+        <span><span class="hint-key">Shift+Enter</span> for new line</span>
+      </div>
+    </div>
+  </main>
+
+</div><!-- /app -->
+
+<!-- API KEY MODAL -->
+<div id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Anthropic API Key</div>
+    <div class="modal-sub">
+      Your key is stored locally in your browser and never sent anywhere except directly to Anthropic's API.
+      Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>.
+    </div>
+    <input type="password" id="api-key-input" placeholder="sk-ant-…" />
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="clearApiKey()" style="margin-right:auto;color:var(--red);border-color:rgba(255,77,106,0.3)">Clear Key</button>
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveApiKey()">Save Key</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+const DEFAULT_API_KEY = '';
+let apiKey = localStorage.getItem('cadalytics_key') || DEFAULT_API_KEY;
+
+// ── Set your Railway backend URL here after deploying ──
+const BACKEND_URL = 'PASTE_YOUR_RAILWAY_URL_HERE';
+let history = JSON.parse(localStorage.getItem('cadalytics_history') || '[]');
+let activeIdx = null;
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+(function init() {
+  updateKeyBtn();
+  renderHistory();
+
+  const textarea = document.getElementById('query-input');
+  textarea.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submitQuery();
+    }
+  });
+  textarea.addEventListener('input', () => {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+  });
+})();
+
+// ─────────────────────────────────────────────
+//  API KEY
+// ─────────────────────────────────────────────
+function openModal() {
+  document.getElementById('api-key-input').value = apiKey;
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => {
+    const input = document.getElementById('api-key-input');
+    input.focus();
+    input.select();
+  }, 50);
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+function saveApiKey() {
+  const input = document.getElementById('api-key-input');
+  const val = input.value.trim();
+
+  if (!val) {
+    input.style.borderColor = 'var(--red)';
+    input.placeholder = 'Key cannot be empty';
+    setTimeout(() => {
+      input.style.borderColor = '';
+      input.placeholder = 'sk-ant-…';
+    }, 2000);
+    return;
+  }
+
+  apiKey = val;
+  localStorage.setItem('cadalytics_key', apiKey);
+  updateKeyBtn();
+  closeModal();
+}
+function clearApiKey() {
+  apiKey = '';
+  localStorage.removeItem('cadalytics_key');
+  document.getElementById('api-key-input').value = '';
+  updateKeyBtn();
+}
+function updateKeyBtn() {
+  const btn = document.getElementById('api-key-btn');
+  if (apiKey) {
+    btn.textContent = '✓ API Key Set';
+    btn.classList.add('set');
+  } else {
+    btn.textContent = '⚙ API Key';
+    btn.classList.remove('set');
+  }
+}
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+document.getElementById('api-key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveApiKey();
+  if (e.key === 'Escape') closeModal();
+});
+
+// ─────────────────────────────────────────────
+//  QUERY SUBMISSION
+// ─────────────────────────────────────────────
+async function submitQuery() {
+  const input = document.getElementById('query-input');
+  const query = input.value.trim();
+  if (!query) return;
+
+  if (!apiKey) {
+    openModal();
+    return;
+  }
+
+  input.value = '';
+  input.style.height = 'auto';
+  setLoading(true);
+
+  try {
+    const result = await callClaude(query);
+    const entry = { query, result, ts: Date.now() };
+    history.unshift(entry);
+    if (history.length > 50) history.pop();
+    localStorage.setItem('cadalytics_history', JSON.stringify(history));
+    activeIdx = 0;
+    renderHistory();
+    renderResponse(entry);
+  } catch (err) {
+    renderError(query, err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function tryExample(el) {
+  const input = document.getElementById('query-input');
+  input.value = el.textContent;
+  input.focus();
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+}
+
+// ─────────────────────────────────────────────
+//  CLAUDE API  (proxied via Railway backend)
+// ─────────────────────────────────────────────
+async function callClaude(query) {
+  const response = await fetch(`${BACKEND_URL}/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    if (response.status === 429) throw new Error('Rate limit reached. Please wait a moment and try again.');
+    throw new Error(err?.detail || `Server error ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// ─────────────────────────────────────────────
+//  RENDER
+// ─────────────────────────────────────────────
+function setLoading(on) {
+  document.getElementById('welcome').style.display = on ? 'none' : '';
+  document.getElementById('loading').style.display = on ? 'flex' : 'none';
+  document.getElementById('submit-btn').disabled = on;
+
+  if (!on) {
+    document.getElementById('welcome').style.display = 'none';
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+function renderResponse(entry) {
+  const area = document.getElementById('response-area');
+  const { query, result } = entry;
+  const d = result;
+
+  let html = `<div class="response-wrapper">`;
+  html += `<div class="query-echo">${escapeHtml(query)}</div>`;
+
+  // Command cards
+  if (d.commands && d.commands.length > 0) {
+    for (const cmd of d.commands) {
+      html += `<div class="response-card">`;
+      html += `<div class="card-header">
+        <span class="card-label accent">Command</span>
+        ${cmd.platform ? `<span class="card-label" style="margin-left:auto;font-size:9px">${escapeHtml(cmd.platform)}</span>` : ''}
+      </div>`;
+      html += `<div class="card-body">`;
+      html += `<div class="cmd-primary">
+        <div class="cmd-name">${escapeHtml(cmd.name)}</div>
+        <div class="cmd-aliases">`;
+      if (cmd.aliases?.length) {
+        for (const a of cmd.aliases) {
+          html += `<span class="cmd-alias-tag">${escapeHtml(a)}</span>`;
+        }
+      }
+      html += `</div></div>`;
+      html += `<div class="cmd-description">${escapeHtml(cmd.description)}</div>`;
+      html += `</div></div>`;
+
+      // Steps
+      if (cmd.steps?.length) {
+        html += `<div class="response-card">`;
+        html += `<div class="card-header"><span class="card-label green">Usage Walkthrough</span></div>`;
+        html += `<div class="card-body"><div class="steps-list">`;
+        cmd.steps.forEach((step, i) => {
+          html += `<div class="step-item">
+            <div class="step-num">${i + 1}</div>
+            <div class="step-text">${formatStep(step)}</div>
+          </div>`;
+        });
+        html += `</div></div></div>`;
+      }
+
+      // Related commands
+      if (cmd.relatedCommands?.length) {
+        html += `<div class="response-card">`;
+        html += `<div class="card-header"><span class="card-label">Related Commands</span></div>`;
+        html += `<div class="card-body"><div class="related-grid">`;
+        for (const rc of cmd.relatedCommands) {
+          html += `<div class="related-cmd" onclick="queryRelated('${escapeAttr(rc.name)}')">
+            <div class="related-cmd-name">${escapeHtml(rc.name)}</div>
+            <div class="related-cmd-desc">${escapeHtml(rc.desc)}</div>
+          </div>`;
+        }
+        html += `</div></div></div>`;
+      }
+    }
+  }
+
+  // Platform notes
+  if (d.platformNotes?.civil3d || d.platformNotes?.microstation) {
+    html += `<div class="response-card">`;
+    html += `<div class="card-header"><span class="card-label amber">Platform Notes</span></div>`;
+    html += `<div class="card-body">`;
+    if (d.platformNotes.civil3d) {
+      html += `<div class="platform-note">
+        <div class="note-platform">Civil 3D</div>
+        <div class="note-text">${escapeHtml(d.platformNotes.civil3d)}</div>
+      </div>`;
+    }
+    if (d.platformNotes.microstation) {
+      html += `<div class="platform-note">
+        <div class="note-platform micro">MicroStation</div>
+        <div class="note-text">${escapeHtml(d.platformNotes.microstation)}</div>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  // Tip / Warning
+  if (d.tip) {
+    html += `<div class="inline-tip tip"><span class="tip-icon">◈</span><span>${escapeHtml(d.tip)}</span></div>`;
+  }
+  if (d.warning) {
+    html += `<div class="inline-tip warn"><span class="tip-icon">⚠</span><span>${escapeHtml(d.warning)}</span></div>`;
+  }
+
+  html += `</div>`;
+
+  area.innerHTML = html;
+  area.scrollTop = 0;
+}
+
+function renderError(query, msg) {
+  const area = document.getElementById('response-area');
+  area.innerHTML = `<div class="response-wrapper">
+    <div class="query-echo">${escapeHtml(query)}</div>
+    <div class="error-card">⚠ ${escapeHtml(msg)}</div>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────
+//  HISTORY
+// ─────────────────────────────────────────────
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (history.length === 0) {
+    list.innerHTML = `<div class="history-empty">No queries yet.<br>Describe a task below<br>to get started.</div>`;
+    return;
+  }
+  list.innerHTML = history.map((entry, i) => {
+    const dt = new Date(entry.ts);
+    const time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return `<div class="history-item ${i === activeIdx ? 'active' : ''}" onclick="loadHistory(${i})">
+      <div class="h-query">${escapeHtml(entry.query)}</div>
+      <div class="h-meta">${time}</div>
+    </div>`;
+  }).join('');
+}
+
+function loadHistory(idx) {
+  activeIdx = idx;
+  renderHistory();
+  renderResponse(history[idx]);
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('loading').style.display = 'none';
+}
+
+function clearHistory() {
+  if (!history.length) return;
+  history = [];
+  localStorage.removeItem('cadalytics_history');
+  activeIdx = null;
+  renderHistory();
+  showWelcome();
+}
+
+function showWelcome() {
+  const area = document.getElementById('response-area');
+  area.innerHTML = `
+    <div id="welcome">
+      <svg class="welcome-icon" viewBox="0 0 64 64" fill="none">
+        <rect x="2" y="2" width="60" height="60" stroke="#00c8ff" stroke-width="1.5"/>
+        <line x1="2" y1="32" x2="62" y2="32" stroke="#00c8ff" stroke-width="0.75"/>
+        <line x1="32" y1="2" x2="32" y2="62" stroke="#00c8ff" stroke-width="0.75"/>
+        <circle cx="32" cy="32" r="12" stroke="#00c8ff" stroke-width="1.5"/>
+        <circle cx="32" cy="32" r="3" fill="#00c8ff"/>
+      </svg>
+      <div class="welcome-title">What are you trying to do?</div>
+      <div class="welcome-sub">Describe any CAD task in plain English. CADalytics will identify the right commands, aliases, and step-by-step workflow for AutoCAD, Civil 3D, or MicroStation.</div>
+      <div class="example-queries">
+        <div class="example-chip" onclick="tryExample(this)">offset a polyline 25 feet</div>
+        <div class="example-chip" onclick="tryExample(this)">round the corner between two lines</div>
+        <div class="example-chip" onclick="tryExample(this)">create a grading surface from contours</div>
+        <div class="example-chip" onclick="tryExample(this)">align viewport to a specific bearing</div>
+        <div class="example-chip" onclick="tryExample(this)">fix a polyline that won't hatch</div>
+        <div class="example-chip" onclick="tryExample(this)">set up a layer standard for land dev</div>
+      </div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────────
+//  UTILS
+// ─────────────────────────────────────────────
+function queryRelated(cmdName) {
+  document.getElementById('query-input').value = `How do I use ${cmdName}?`;
+  submitQuery();
+}
+
+function formatStep(text) {
+  return escapeHtml(text).replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+function escapeAttr(str) {
+  return String(str || '').replace(/'/g, "\\'");
+}
+</script>
+</body>
+</html>
